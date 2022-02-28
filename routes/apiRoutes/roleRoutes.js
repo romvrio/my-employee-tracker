@@ -4,35 +4,53 @@ const db = require('../../db/connection');
 const inputCheck = require('../../utils/inputCheck');
 
 //show all roles
-router.get('/role', (req, res) => {
-    const sql = `SELECT * FROM role ORDER BY title`;
+function viewAllRoles() {
+    router.get('/role', (req, res) => {
+        const sql = `SELECT * FROM role ORDER BY title`;
 
-    db.query(sql, (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        } res.json({
-            message: 'success',
-            data: rows
+        db.query(sql, (err, rows) => {
+            if (err) {
+                res.status(500).json({ error: err.message });
+                return;
+            } res.json({
+                message: 'success',
+                data: rows
+            });
         });
     });
-});
+};
 
-//get single employee
-router.get('/role/:id', (req, res) => {
-    const sql = `SELECT * FROM role WHERE id = ?`;
-    const params = [req.params.id];
-
-    db.query(sql, params, (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
+function addRole() {
+    router.put('/role/:id', (req, res) => {
+        //role is allowed to not have a emplyee affiliation
+        const errors = inputCheck(req.body, 'role_id');
+        if (errors) {
+            res.status(400).json({ error: errors });
             return;
-        } res.json({
-            message: 'success',
-            data: rows
+        }
+
+        const sql = `UPDATE employee SET role_id =?
+                     WHERE id = ?`;
+        const params = [req.body.role_id, req.params.id];
+        db.query(sql, params, (err, result) => {
+            if (err) {
+                res.status(400).json({ error: err.message });
+                // check if a record was found 
+            } else if (!result.affectedRows) {
+                res.json({
+                    message: 'role not found'
+                });
+            } else {
+                res.json({
+                    message: 'success',
+                    data: req.body,
+                    changes: result.affectedRows
+                });
+            }
         });
     });
-});
+
+};
 
 
-module.exports = router;
+module.exports = { viewAllRoles, addRole };
